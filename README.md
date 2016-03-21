@@ -4,7 +4,7 @@ Written entirely in standard C and works for both 32 and 64 bit compilations.
 64 bit mode is much faster since montgomery math need not be done at 32 bit boundaries of K 
 
 Software:       Chuck Lasher    ( chuck.lasher@gmail.comm )
-Math functions: Paul Underwood  ( paulunderwood@mindless.com )
+Math:           Paul Underwood  ( paulunderwood@mindless.com )
 
 FOR EDUCATIONAL AND PERSONAL RESEARCH PURPOSES ONLY.  NOT FOR COMMERCIAL USE
 
