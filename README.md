@@ -1,4 +1,5 @@
-# This software sieves for near-repdigit (NRD) primes base 10 commonly of the form  10000000000...000001(both + and -)
+# Sieve for near-repdigit (NRD) primes base 10
+commonly of the form  10000000000...000001(both + and -)
 
 Written entirely in standard C and works for both 32 and 64 bit compilations although 64 bit compilation is much faster
 
