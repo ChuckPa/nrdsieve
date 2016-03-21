@@ -8,3 +8,4 @@ could be integrated but no algorithms have been shared at this time
 
 The multitasking library is entirely self created and fully   libpthread compliant.
 
+The primgen library (primegen.a and primegen.h) is needed to generate base primes for sieving
