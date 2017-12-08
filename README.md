@@ -19,7 +19,7 @@ The multitasking library is entirely self created and fully   libpthread complia
 The primegen library (primegen.a and primegen.h) is needed to generate base primes for sieving
 
 
-Usage:   nrdsieve [options] inputfile outputfile
+## Usage:   nrdsieve [options] inputfile [outputfile]
 
 Command line options:  Options may be of the form "option=value" or "Option value"
 
@@ -38,7 +38,7 @@ Command line options:  Options may be of the form "option=value" or "Option valu
  
 - -save               - Enable automatic saving.     (Sieve will save when interrupted with Ctrl-C) 
  
-Other options
+## Other options
 - -auto M             - Autosave output every M minutes  (default = 10)
 - -log filename       - log deleted candidates to filename (default = outputname.del)
 - -quiet              - Do not output progress update each minute (P, p/sec, candidates removed)
@@ -49,7 +49,7 @@ Other options
 - -nodelete           - Force candicate deletion logging off when `-yes` used
  
 
-Wish list
+## Wish list
 
 1.  Help with BS-GS math & strategy how to implement
 2.  Help with Jacobi symbol math
