@@ -48,3 +48,9 @@ Other options
 - -no                 - Answer NO to all questions
 - -nodelete           - Force candicate deletion logging off when `-yes` used
  
+
+##Wish list
+
+1.  Help with BS-GS math & strategy how to implement
+2.  Help with Jacobi symbol math
+3.  Inline ssembly language routines for mulmod() and powmod() in 32, 64, and 128 bits
