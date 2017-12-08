@@ -23,27 +23,27 @@ Usage:   nrdsieve [options] inputfile outputfile
 
 Command line options:   (minimally unique abbreviations supported)
 
- -new                - Start new sieve interactive setup
-- B                  - Specify base
- -N                  - N to ue
- -kmin               - Starting K  ('k0' is a valid alias for kmin)
- -kmax               - Ending K    ('k1' is alias for kmax)  (Kmax must be less than N)
- -pmin               - Starting P  ('p' and 'p0' are aliases for pmin)
- -pmax               - Ending P    ('P' and 'p1' are aliases for pmax)
- -output Filename    - Save sieve output to 'Filename'
+- -new                - Start new sieve interactive setup
+- -B                  - Specify base
+- -N                  - N to ue
+- -kmin               - Starting K  ('k0' is a valid alias for kmin)
+- -kmax               - Ending K    ('k1' is alias for kmax)  (Kmax must be less than N)
+- -pmin               - Starting P  ('p' and 'p0' are aliases for pmin)
+- -pmax               - Ending P    ('P' and 'p1' are aliases for pmax)
+- -output Filename    - Save sieve output to 'Filename'
  
- -input Filename     - Sieve file to resume
- -resume
+- -input Filename     - Sieve file to resume
+- -resume
  
- -save               - Enable automatic saving.     (Sieve will save when interrupted with Ctrl-C) 
+- -save               - Enable automatic saving.     (Sieve will save when interrupted with Ctrl-C) 
  
 Other options
- -auto M             - Autosave output every M minutes  (default = 10)
- -log filename       - log deleted candidates to filename (default = outputname.del)
- -quiet              - Do not output progress update each minute (P, p/sec, candidates removed)
- -threads N          - Use N cpu threads for processing
+- -auto M             - Autosave output every M minutes  (default = 10)
+- -log filename       - log deleted candidates to filename (default = outputname.del)
+- -quiet              - Do not output progress update each minute (P, p/sec, candidates removed)
+- -threads N          - Use N cpu threads for processing
 
- -yes                - Answer YES to all questions (used for batch start)
- -no                 - Answer NO to all questions
- -nodelete           - Force candicate deletion logging off when `-yes` used
+- -yes                - Answer YES to all questions (used for batch start)
+- -no                 - Answer NO to all questions
+- -nodelete           - Force candicate deletion logging off when `-yes` used
  
