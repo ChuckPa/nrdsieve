@@ -49,7 +49,7 @@ Other options
 - -nodelete           - Force candicate deletion logging off when `-yes` used
  
 
-##Wish list
+Wish list
 
 1.  Help with BS-GS math & strategy how to implement
 2.  Help with Jacobi symbol math
