@@ -21,9 +21,8 @@ The primegen library (primegen.a and primegen.h) is needed to generate base prim
 
 Usage:   nrdsieve [options] inputfile outputfile
 
-Command line options:   (minimally unique abbreviations supported)
+Command line options:  Options may be of the form "option=value" or "Option value"
 
-* Options may be of the form "option=value" or "Option value"
   
 - -new                - Start new sieve interactive setup
 - -B                  - Specify base
