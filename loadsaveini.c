@@ -26,6 +26,10 @@
 // 12-Oct-2013  - update (upper/lower case support)
 // 14-Oct-2013  - Installed Keyword structure to simplify coding
 //
+// $Log: loadsaveini.c.v $
+// Revision 1.11  2017/12/08 18:52:04  chuck
+// Corrected optOutput processing
+//
 // $Log: loadsaveini.c,v $
 // Revision 1.10  2013/12/11 22:04:58  chuck
 // updated for new structure
@@ -63,6 +67,8 @@ static char *rcs_file_verson = "$Id: loadsaveini.c,v 1.10 2013/12/11 22:04:58 ch
 #include <strings.h>
 #include "sieve.h"
 #include "loadsaveini.h"
+#include "string.h"
+#include "limits.h"
 
 // --- put compile-time flags here (if used)
 #define WARN_NOTFOUND
@@ -81,8 +87,10 @@ struct_ini initable[] = {
    { "AUTOSAVE",        1,  intger,   &Autosave,       &gotAutosave },
    { "LASTP",           0,  lngint,   &LastP,          &gotLastP },
    { "FILENAME",        0,  string,   &InputFilename,  &gotInput },
+   { "INPUT",           0,  string,   &InputFilename,  &gotInput },   // *Alias for Filename
    { "INPUTNAME",       0,  string,   &InputFilename,  &gotInput },   // *Alias for FILENAME
    { "OUTPUTNAME",      0,  string,   &OutputFilename, &gotOutput },
+   { "OUTPUT",          0,  string,   &OutputFilename, &gotOutput },  // *Alias for OutputName
    { "LOGFILE",         0,  string,   &LogFilename,    &gotLogfile },
    { "VERBOSE",         1,  intger,   &Verbose,        &gotVerbose },
    { "LOGDELETE",       0,  intger,   &LogDelete,      &gotLogDelete },
@@ -95,36 +103,32 @@ struct_ini initable[] = {
    { "PMIN",            0,  lngint,   &Pmin,           &gotPmin },
    { "PMAX",            0,  lngint,   &Pmax,           &gotPmax },
 
+   { "LASTP",           0,  lngint,   &Pmin,           &gotPmin },    // Transfer LastP to Pmin
+
    { 0,0,0,0,0 }
  };
 
 #define ISSTRING(a,b)  ( (strlen(a)==strlen(b)) && (!strcmp(a,b)) )
 
-int loadini()
+int loadini(char *filename)
 {
-  FILE *ini = fopen(SIEVE_INI_NAME,"r");
+  FILE *ini = fopen(filename,"r");
 
   char  *l,*keyword, *value;
   char  line[512];
 
   int   id,found;
 
+  int   errors = 0;
+  int   fatal = 0;
+
   char  *YES = "1", *NO="0";  // for booleans
 
-
-#if 0  // DO NOT SCRIBBLE ANYWHERE!  GOON!
-  // Default the rest to ZERO (0)
-  B = N = Kmin = Kmax = Ksize = C = LastP = Verbose = 0;
-  LogDelete = 0;
-  LogFilename[0]    = '\0';
-  InputFilename[0]  = '\0';
-  OutputFilename[0] = '\0';
-#endif
 
 
   // Clear all 'got' flags
   gotB = gotN = gotKmin = gotKmax = gotKsize = gotC = gotLastP = gotVerbose = 0;
-  gotLogDelete = gotInput = gotAutosave = gotLogfile = gotPmin = gotPmax = 0;
+  gotLogDelete = gotInput = gotOutput = gotAutosave = gotLogfile = gotPmin = gotPmax = 0;
 
 
   if (ini == (FILE *) 0) {
@@ -132,9 +136,13 @@ int loadini()
     // printf("Error: cannot open ini file\n");
   }
 
+  // Make sure the buffer is empty
+  bzero(line,sizeof(line));
 
   // read each record from the ini file
-  while ( fgets(line, 80, ini)) {
+
+  while ( fgets(line, 256, ini)) {
+
     nocrlf(line);
 
     // remove leading & trailing whitespece
@@ -145,7 +153,7 @@ int loadini()
     if (!strstr(l,"=")) {
 
       keyword = rtrim(l);
-      value   = "";
+      value  = '\0';
 
     } else {
 
@@ -156,11 +164,18 @@ int loadini()
 
       keyword = ltrim(rtrim(l));
       value   = ltrim(rtrim(value));
+
+#ifdef DEBUG
+      printf("Keyword='%s', Value='%s'\n",keyword,value);
+#endif
+
+      // zero it again (sse is that fussy)
+      bzero(line,sizeof(line));
     }
 
-
-// ----    printf("keyword = [%s], value = [%s]\n",keyword,value);
-
+#ifdef DEBUG
+    printf("INI: keyword = [%s], value = [%s]\n",keyword,value);
+#endif
     // Convert to uppercase and go from there
     upcase(keyword);
 
@@ -188,6 +203,9 @@ int loadini()
           switch (initable[id].format) {
 
             case (string):
+#ifdef DEBUG
+              printf("capturing '%s' for '%s'\n", value, initable[id].keyword);
+#endif
               if (sscanf(value,"%s",initable[id].dest) != 1) 
                 printf("Error: INI file parameter '%s' invalid [%s]\n",keyword,value);
               break;
@@ -195,7 +213,13 @@ int loadini()
             case (intger):
               if (sscanf(value,"%d",initable[id].dest) != 1)
                 printf("Error: INI file parameter '%s' not an integer [%s]\n",keyword,value);
-              break;
+
+#ifdef DEBUG
+              // DEBUG:
+              int dbg = *( (int *) initable[id].dest);
+              printf("%s got  %d\n", initable[id].keyword, dbg );
+#endif
+                break;
 
             case (lngint):
               if (sscanf(value,"%lu",initable[id].dest) != 1)
@@ -247,29 +271,23 @@ int loadini()
     if (Autosave <= 0 || Autosave > 60000) {
       fprintf(stderr,"Warning: Autosave specified is way out of range [%s]\n",value);
       fprintf(stderr,"         Using default.");
+      errors++;
       Autosave = AutosaveDefault;
     }
   }
 
-  // LastP
-  // *not yet* LastP = -1;
-  // no error check, use whatever value we are given .. FOR NOW
 
-  // Make sure Pmin & Pmax are sane if specified 
-  if (gotPmax && gotPmin) {
-    if (Pmax <= Pmin) {
-      fprintf(stderr,"Warning: Pmax <= Pmin.  Both values ignored.\n");
-      Pmax = 0;
-      Pmin = 0;
-      gotPmax = gotPmin = 0;
-    }
-  }
 
   // InputFile the input filename, copy it to the output filename
   if (gotInput) {
-      strcpy(OutputFilename,InputFilename);
-      // printf("loadini: InputFilename = [%s]\n",InputFilename);
-      // printf("loadini: OutputFilename = [%s]\n",OutputFilename);
+
+      // Only copy input filename to output name if no Output filename yet encountered
+      if (!gotOutput) strcpy(OutputFilename,InputFilename);
+
+#ifdef DEBUG
+      printf("DBG: copying Input -> Output\n");
+#endif
+
   }
 
 
@@ -279,53 +297,116 @@ int loadini()
 
 
   // B
-  if (gotB)
-    if (B < 2 || B > 10000)
-      fprintf(stderr,"Warning: 'Base' in .ini file is wildly out of range [%d]\n",B);
+  if (gotB) {
+    if (B < 2 || B > 10000) {
+
+      fprintf(stderr,"Warning: 'Base' in .ini file is wildly out of range [%d] - Ignored\n",B);
+      errors++;
+      fatal++;
+    }
+  }
 
 
   // N
-  if (gotN)
-    if (N < 2 || N > 100000000)
-      fprintf(stderr,"Warning: 'N' in .ini file is out of range [%d]\n",N);
+  if (gotN) {
+    if (N < 2 || N > 100000000) {
 
+      fprintf(stderr,"Warning: 'N' in .ini file is out of range [%d]\n",N);
+      errors++;
+      fatal++;
+
+    }
+  }
 
   // Kmin
-  if (gotKmin)
-        if (Kmin < 1 || Kmin > 1000000000)
-          fprintf(stderr,"Warning: 'Kmin' in .ini file is out of range [%d]\n",Kmin);
+  if (gotKmin) {
+    if (Kmin < 1 || Kmin > 1000000000) {
 
+      fprintf(stderr,"Warning: 'Kmin' in .ini file is out of range [%d]\n",Kmin);
+      errors++;
+      fatal++;
+
+    } 
+  }
 
   // Kmax
-  if (gotKmax)
-        if (Kmax < 1 || Kmax > 1000000000)
-          fprintf(stderr,"Warning: 'Kmax' in .ini file is out of range [%d]\n",Kmax);
+  if (gotKmax) {
+    if (Kmax < 1 || Kmax > 1000000000) {
 
+      fprintf(stderr,"Warning: 'Kmax' in .ini file is out of range [%d]\n",Kmax);
+
+      errors++;
+      fatal++;
+    }
+  }
 
   // Ksize (for resume)
-  if (gotKsize)
-        if (Ksize < 1 || Ksize > 1000000000)
-          fprintf(stderr,"Warning: 'Ksize' in .ini file is wildly out of range [%d]\n",Ksize);
+  if (gotKsize) {
+    if (Ksize < 1 || Ksize > 1000000000) {
+      fprintf(stderr,"Warning: 'Ksize' in .ini file is wildly out of range [%d]\n",Ksize);
+      errors++;
+    }
+  }
 
 
-//      if (C == 0 ) {
-//        fprintf(stderr,"Warning: 'C' in .ini file is out of range [%s]\n",value);
-//        fprintf(stderr,"         Value overridden.  Default of '1' assigned.\n");
-//      }
+  // C
+  if (gotC) {
+    if (!C) {
 
+      fprintf(stderr,"Warning: 'C' in .ini file is out of range [%s]\n",value);
+      fprintf(stderr,"         Value overridden.  Default of '1' assigned.\n");
+      errors++;
+      C = 1;
+    }
+  }
 
+  // LastP
+  if (gotLastP || gotPmin) {
+    if (Pmin < 2 ) {
+
+      fprintf(stderr,"Warning: 'Pmin' in .ini file is out of range [%s]\n",value);
+      fprintf(stderr,"         Value overridden.  Default of '2' assigned.\n");
+      
+      errors++;
+      Pmin = 2;
+    }
+
+    // If not yet encountered Pmax,  set to SIEVELIMIT for now
+    if (! gotPmax ) Pmax = SIEVELIMIT;
+   
+  }
+
+  // Make sure Pmin & Pmax are sane if specified 
+  if (gotPmax && gotPmin) {
+    if (Pmax <= Pmin) {
+      fprintf(stderr,"Warning: Pmax <= Pmin.  Both values ignored.\n");
+      errors++;
+
+      Pmax = 0;
+      Pmin = 0;
+      gotPmax = gotPmin = 0;
+    }
+  }
 
   // Close the ini file
   fclose(ini);
 
 
+  // Decide what to do 
+  if (errors) printf("Warning:  %s errors encountered in ini file\n",errors);
+
+  if (fatal)  {
+    printf("ERROR:    Fatal errors in ini file prevent further processing.  Exiting\n");
+    exit(99);
+  }
+
   // return TRUE because we found & loaded the .ini.  We use this result
   return (1);
 }
 
-int saveini()
+int saveini(char *Filename)
 {
-  FILE *ini = fopen(SIEVE_INI_NAME, "w");
+  FILE *ini = fopen(Filename, "w");
 
 
   // if we cannot open the .ini file to write to, silently exit
@@ -337,22 +418,22 @@ int saveini()
 
   // now dump it all out, in order EXCEPT, use LIVE values and not 'ini' prefixed ones
 
-  fprintf(ini,"Input = %s\n"           ,InputFilename);
-  fprintf(ini,"Output = %s\n"          ,OutputFilename);
-  fprintf(ini,"Base = %d\n"            ,B );
-  fprintf(ini,"N = % d\n"              ,N );
-  fprintf(ini,"Ksize = %d\n"           ,Ksize);
-  fprintf(ini,"Kmin = %d\n"            ,Kmin );
-  fprintf(ini,"Kmax = %d\n"            ,Kmax );
-  fprintf(ini,"C = %d\n"               ,C    );
-  fprintf(ini,"LastP = %lu\n"          ,LastP);
+  fprintf(ini,"Input     = %s\n"  ,InputFilename);
+  fprintf(ini,"Output    = %s\n"  ,OutputFilename);
+  fprintf(ini,"Base      = %d\n"  ,B );
+  fprintf(ini,"N         = %d\n"  ,N );
+  fprintf(ini,"Ksize     = %d\n"  ,Ksize);
+  fprintf(ini,"Kmin      = %d\n"  ,Kmin );
+  fprintf(ini,"Kmax      = %d\n"  ,Kmax );
+  fprintf(ini,"C         = %d\n"  ,C    );
+  fprintf(ini,"LastP     = %lu\n" ,LastP);
 
   // Do not expose optional keywords that are not at default value
 
-  if (Autosave)          fprintf(ini,"Autosave = %d\n",  Autosave);
+  if (Autosave)          fprintf(ini,"Autosave  = %d\n", Autosave);
   if (LogDelete)         fprintf(ini,"LogDelete = %d\n", LogDelete);
-  if (Verbose)           fprintf(ini,"Verbose = %d\n",   Verbose);
-  if (*LogFilename)      fprintf(ini,"Logfile = %s\n",   LogFilename);
+  if (Verbose)           fprintf(ini,"Verbose   = %d\n", Verbose);
+  if (*LogFilename)      fprintf(ini,"Logfile   = %s\n", LogFilename);
 
   // Although coded here, Pmax & Pmin are not retained by default
   //if (Pmax)              fprintf(ini,"Pmax = %lu\n",     Pmax);
@@ -367,17 +448,19 @@ int saveini()
 
 
 #ifdef UNIT_TEST
-main()
+int main()
 {
+
+
     loadini("loadini.test");
 
 
     // now print what's in global memory (dump it out)
     printf("After loading loadini.test, values are: \n");
 
-    B = N = 1;
-    Kmin = Kmax = C = LastP = Autosave = LogDelete = Verbose = 2;
-    strcpy(InputFilename,"THIS=IS=WRONG");
+    //B = N = 1;
+    //Kmin = Kmax = C = LastP = Autosave = LogDelete = Verbose = 2;
+    //strcpy(InputFilename,"THIS=IS=WRONG");
 
     printf("Base         = %ld\n",B    );
     printf("N            = %ld\n",N    );
@@ -391,7 +474,8 @@ main()
     printf("LogDelete    = %d\n",LogDelete);
     printf("Verbose      = %d\n",Verbose);
     printf("Logfile      = %s\n",LogFilename);
-    printf("Filename     = %s\n",InputFilename);
+    printf("Input        = %s\n",InputFilename);
+    printf("Output       = %s\n",OutputFilename);
 
 
     // final test -- save a test .ini file
